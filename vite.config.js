@@ -4,10 +4,14 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/fyp-game/',
   plugins: [
     react(),
     tailwindcss(),
   ],
+  preview: {
+    allowedHosts: 'all',
+  },
   server: {
     proxy: {
       '/api/poe': {
