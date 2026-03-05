@@ -1,5 +1,7 @@
 const POE_API_KEY = "ltlR246-T-Uo3dZOySLphdQgOl_BEEyFw6FWhHXtIt8";
-const POE_ENDPOINT = "/api/poe/chat/completions";
+// Direct Poe API endpoint — supports CORS (access-control-allow-origin: *)
+// No proxy needed; works from browser on GitHub Pages
+const POE_ENDPOINT = "https://api.poe.com/v1/chat/completions";
 const MODEL_NAME = "gemini-3-flash";
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
