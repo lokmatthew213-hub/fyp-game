@@ -14,13 +14,21 @@ import {
   Activity,
   Zap,
   Target,
-  BrainCircuit
+  BrainCircuit,
+  ChevronRight,
+  ChevronLeft,
+  ZoomIn,
+  ZoomOut,
+  GripVertical,
 } from 'lucide-react';
 import { generateNDeck, generateWDeck, CARD_TYPES } from './data/decks';
 import { judgeSubmission, getNpcMove } from './utils/aiJudge';
 
+// ─────────────────────────────────────────────
+// StartMenu Component
+// ─────────────────────────────────────────────
 const StartMenu = ({ onSelectMode, onStartBattle }) => {
-  const [phase, setPhase] = useState('MODE'); // 'MODE', 'SETUP'
+  const [phase, setPhase] = useState('MODE');
   const [difficulty, setDifficulty] = useState('MEDIUM');
   const [driver, setDriver] = useState('ALGORITHM');
 
@@ -36,9 +44,7 @@ const StartMenu = ({ onSelectMode, onStartBattle }) => {
             <Settings className="text-amber-500" size={32} />
             <h1 className="text-2xl font-black text-slate-800">戰局設定 (NPC Config)</h1>
           </div>
-
           <div className="space-y-6">
-            {/* Driver Type */}
             <div>
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 block">驅動方式 (Driver Type)</label>
               <div className="grid grid-cols-2 gap-3">
@@ -57,8 +63,6 @@ const StartMenu = ({ onSelectMode, onStartBattle }) => {
                 ))}
               </div>
             </div>
-
-            {/* Difficulty */}
             <div>
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 block">難度等級 (Difficulty)</label>
               <div className="grid grid-cols-3 gap-3">
@@ -78,7 +82,6 @@ const StartMenu = ({ onSelectMode, onStartBattle }) => {
                 ))}
               </div>
             </div>
-
             <div className="pt-4 flex gap-3">
               <button
                 onClick={() => setPhase('MODE')}
@@ -111,7 +114,6 @@ const StartMenu = ({ onSelectMode, onStartBattle }) => {
         </div>
         <h1 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">百分戰局</h1>
         <p className="text-slate-500 mb-8 font-medium italic">Percent Battle: Mathematical Commander</p>
-
         <div className="space-y-4">
           <button
             onClick={() => onSelectMode('PRACTICE')}
@@ -126,7 +128,6 @@ const StartMenu = ({ onSelectMode, onStartBattle }) => {
             <Sword size={20} /> 對戰模式 (vs 3 NPCs)
           </button>
         </div>
-
         <p className="mt-8 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
           Select your mission, Commander.
         </p>
@@ -135,6 +136,9 @@ const StartMenu = ({ onSelectMode, onStartBattle }) => {
   );
 };
 
+// ─────────────────────────────────────────────
+// WildCardSelector Component
+// ─────────────────────────────────────────────
 const WildCardSelector = ({ type, onSelect, onCancel }) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -180,7 +184,10 @@ const WildCardSelector = ({ type, onSelect, onCancel }) => {
   );
 };
 
-const BattleLog = ({ history }) => {
+// ─────────────────────────────────────────────
+// BattleLog Component — Collapsible Side Panel
+// ─────────────────────────────────────────────
+const BattleLog = ({ history, isOpen, onToggle }) => {
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -190,48 +197,191 @@ const BattleLog = ({ history }) => {
   }, [history]);
 
   return (
-    <aside className="w-80 border-l border-slate-200 bg-white flex flex-col shrink-0">
-      <div className="h-16 border-b border-slate-100 px-6 flex items-center gap-2 shrink-0">
-        <History className="text-indigo-500" size={20} />
-        <h3 className="font-bold text-slate-700">戰鬥日誌 (Battle Log)</h3>
-      </div>
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar"
+    <>
+      {/* Toggle Button — always visible */}
+      <button
+        onClick={onToggle}
+        className={`fixed right-0 top-1/2 -translate-y-1/2 z-[60] flex items-center gap-1 px-2 py-4 rounded-l-xl shadow-lg border border-r-0 border-slate-200 transition-all duration-300
+          ${isOpen ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-white text-indigo-500 hover:bg-indigo-50'}`}
+        title={isOpen ? '隱藏戰鬥日誌' : '顯示戰鬥日誌'}
+        style={{ right: isOpen ? '320px' : '0px' }}
       >
-        {history.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-2 opacity-50">
-            <Activity size={48} />
-            <p className="text-xs font-bold uppercase tracking-widest">Awaiting actions...</p>
-          </div>
-        ) : (
-          history.map((entry, idx) => (entry && entry.timestamp && (
-            <motion.div
-              key={`${entry.timestamp}-${idx}`}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className={`p-3 rounded-xl border flex flex-col gap-1 shadow-sm
-                ${entry.special ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}
-            >
-              <div className="flex items-center justify-between">
-                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${entry.isHuman ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
-                  {entry.playerName}
-                </span>
-                <span className="text-[9px] text-slate-400 font-mono">
-                  {new Date(entry.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </span>
+        <div className="flex flex-col items-center gap-1">
+          {isOpen ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          <span className="text-[9px] font-black uppercase tracking-widest" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+            Battle Log
+          </span>
+          {history.length > 0 && !isOpen && (
+            <span className="w-5 h-5 bg-indigo-500 text-white rounded-full text-[9px] font-black flex items-center justify-center">
+              {history.length > 99 ? '99+' : history.length}
+            </span>
+          )}
+        </div>
+      </button>
+
+      {/* Side Panel */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.aside
+            initial={{ x: 320, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 320, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed right-0 top-0 bottom-0 w-80 border-l border-slate-200 bg-white flex flex-col z-50 shadow-2xl"
+          >
+            <div className="h-16 border-b border-slate-100 px-6 flex items-center justify-between shrink-0 bg-white">
+              <div className="flex items-center gap-2">
+                <History className="text-indigo-500" size={20} />
+                <h3 className="font-bold text-slate-700">戰鬥日誌 (Battle Log)</h3>
               </div>
-              <p className={`text-xs font-bold ${entry.special ? 'text-amber-700' : 'text-slate-600'}`}>
-                {entry.details}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-mono">{history.length} 筆</span>
+                <button
+                  onClick={onToggle}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar"
+            >
+              {history.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-2 opacity-50">
+                  <Activity size={48} />
+                  <p className="text-xs font-bold uppercase tracking-widest">Awaiting actions...</p>
+                </div>
+              ) : (
+                history.map((entry, idx) => (entry && entry.timestamp && (
+                  <motion.div
+                    key={`${entry.timestamp}-${idx}`}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`p-3 rounded-xl border flex flex-col gap-1 shadow-sm
+                      ${entry.special ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${entry.isHuman ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
+                        {entry.playerName}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-mono">
+                        {new Date(entry.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className={`text-xs font-bold ${entry.special ? 'text-amber-700' : 'text-slate-600'}`}>
+                      {entry.details}
+                    </p>
+                  </motion.div>
+                )))
+              )}
+            </div>
+
+            {/* Clear Log Button */}
+            <div className="p-4 border-t border-slate-100 shrink-0">
+              <p className="text-[10px] text-slate-400 text-center font-mono">
+                即時記錄所有戰鬥動作
               </p>
-            </motion.div>
-          )))
+            </div>
+          </motion.aside>
         )}
-      </div>
-    </aside>
+      </AnimatePresence>
+    </>
   );
 };
 
+// ─────────────────────────────────────────────
+// HandCard Component — Draggable within hand
+// ─────────────────────────────────────────────
+const HandCard = ({
+  card,
+  index,
+  cardScale,
+  isHuman,
+  isDiscardMode,
+  canInteract,
+  getCardConfig,
+  onTap,
+  onDragToSlot,
+  onReorder,
+  handLength,
+}) => {
+  const dragStartIndex = useRef(null);
+  const isDraggingInHand = useRef(false);
+
+  const cardW = Math.round(96 * cardScale);
+  const cardH = Math.round(128 * cardScale);
+  const fontSize = cardScale < 0.8 ? 'text-sm' : cardScale > 1.2 ? 'text-2xl' : 'text-xl';
+
+  return (
+    <motion.div
+      key={card.id}
+      layoutId={card.id}
+      initial={{ y: 50, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ scale: 0, opacity: 0 }}
+      whileHover={canInteract ? { y: -16, scale: 1.08 } : {}}
+      whileDrag={{ scale: 1.12, zIndex: 200, cursor: 'grabbing' }}
+      drag={canInteract}
+      dragSnapToOrigin
+      onDragStart={() => {
+        isDraggingInHand.current = false;
+        dragStartIndex.current = index;
+      }}
+      onDrag={(e, info) => {
+        // Detect if dragging horizontally within hand area (reorder)
+        if (Math.abs(info.offset.x) > 20 && Math.abs(info.offset.y) < 60) {
+          isDraggingInHand.current = true;
+        }
+      }}
+      onDragEnd={(e, info) => {
+        if (isDraggingInHand.current) {
+          // Calculate target index based on horizontal offset
+          const cardWidthWithGap = cardW + 16;
+          const delta = Math.round(info.offset.x / cardWidthWithGap);
+          const targetIndex = Math.max(0, Math.min(handLength - 1, index + delta));
+          if (targetIndex !== index) {
+            onReorder(index, targetIndex);
+          }
+          isDraggingInHand.current = false;
+        } else {
+          onDragToSlot(e, info, card);
+        }
+        dragStartIndex.current = null;
+      }}
+      onTap={() => onTap(card)}
+      style={{ width: cardW, height: cardH, flexShrink: 0 }}
+      className={`rounded-2xl border-4 shadow-2xl flex items-center justify-center cursor-pointer relative group
+        ${getCardConfig(card).className}
+        ${isDiscardMode ? 'ring-4 ring-red-400 ring-offset-2 border-white' : 'border-white'}`}
+    >
+      <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors rounded-xl" />
+      <span className={`font-black ${fontSize} italic tracking-tighter leading-none text-center px-1`}>
+        {getCardConfig(card).display}
+      </span>
+      <div className="absolute top-1 left-2 text-[8px] font-black opacity-30 uppercase">
+        {card.type === 'n' ? 'Num' : 'Word'}
+      </div>
+      {/* Drag handle indicator */}
+      {canInteract && (
+        <div className="absolute bottom-1 right-1 opacity-20 group-hover:opacity-50 transition-opacity">
+          <GripVertical size={10} />
+        </div>
+      )}
+      {isDiscardMode && isHuman && (
+        <div className="absolute inset-0 bg-red-500/20 backdrop-blur-[1px] flex items-center justify-center rounded-xl">
+          <Trash2 className="text-white drop-shadow-lg" size={Math.round(40 * cardScale)} />
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Main App Component
+// ─────────────────────────────────────────────
 const contextData = { red: 20, yellow: 30, blue: 50, total: 100 };
 
 const App = () => {
@@ -251,20 +401,25 @@ const App = () => {
   const [isDiscardMode, setIsDiscardMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Waiting for mission dispatch...');
-  const [showWildSelector, setShowWildSelector] = useState(null); // { card, slotIndex }
+  const [showWildSelector, setShowWildSelector] = useState(null);
   const [winner, setWinner] = useState(null);
-  const [pendingDiscard, setPendingDiscard] = useState(null); // { card, sourcePlayerIndex }
-  const [challengeState, setChallengeState] = useState(null); // { challengerIndex: number, timer: number }
+  const [pendingDiscard, setPendingDiscard] = useState(null);
+  const [challengeState, setChallengeState] = useState(null);
+
+  // New state for Battle Log visibility and card scale
+  const [isBattleLogOpen, setIsBattleLogOpen] = useState(false);
+  const [cardScale, setCardScale] = useState(1.0);
 
   const slotRefs = useRef(Array(10).fill(null).map(() => React.createRef()));
   const discardRef = useRef(null);
   const isDraggingRef = useRef(false);
 
-  const logAction = useCallback((playerName, isHuman, details) => {
+  const logAction = useCallback((playerName, isHuman, details, special = false) => {
     setActionHistory(prev => [...prev, {
       playerName,
       isHuman,
       details,
+      special,
       timestamp: Date.now()
     }]);
   }, []);
@@ -342,17 +497,11 @@ const App = () => {
       let currentWDeck = [...wDeck];
 
       const newPlayers = prev.map(player => {
-        // Goal is 12 cards (6 Number + 6 Word as starting balance)
         const numToDrawN = Math.max(0, 6 - player.hand.filter(c => c.type === CARD_TYPES.NUMBER).length);
         const numToDrawW = Math.max(0, 6 - player.hand.filter(c => c.type === CARD_TYPES.WORD).length);
-
         const cardsN = currentNDeck.splice(0, numToDrawN);
         const cardsW = currentWDeck.splice(0, numToDrawW);
-
-        return {
-          ...player,
-          hand: [...player.hand, ...cardsN, ...cardsW]
-        };
+        return { ...player, hand: [...player.hand, ...cardsN, ...cardsW] };
       });
 
       setNDeck(currentNDeck);
@@ -384,7 +533,6 @@ const App = () => {
   }, [logAction]);
 
   const endTurn = useCallback((skipReturn = false, slotsToReturn = null, forceNext = false) => {
-    // Return cards to hand if not a victory. Use provided slots or current state.
     const activeSlots = slotsToReturn || slots;
     const cardsInSlots = activeSlots.filter(s => s !== null);
 
@@ -395,11 +543,10 @@ const App = () => {
       logAction('System', false, `Turn End: All construction cards returned to ${players[currentPlayerIndex]?.name}'s hand.`);
     }
 
-    // Always clear slots at end of turn
     setSlots(Array(10).fill(null));
     setTurnPhase('END');
     setIsDiscardMode(false);
-    setPendingDiscard(null); // Clear pending discard if any
+    setPendingDiscard(null);
 
     setTimeout(() => {
       if (gameMode === 'BATTLE') {
@@ -420,7 +567,6 @@ const App = () => {
   }, [gameMode, currentPlayerIndex, players, slots, logAction]);
 
   const initiateDiscard = (card) => {
-    // Enter ROBBING phase
     setPendingDiscard({ card, sourcePlayerIndex: currentPlayerIndex });
     setTurnPhase('ROBBING');
     setStatusMessage('ROBBABLE! Opportunity to sieze supply!');
@@ -431,12 +577,10 @@ const App = () => {
     setDiscardPile(prev => [card, ...prev]);
     logAction(currentPlayer.name, currentPlayerIndex === 0, `棄置了卡牌: [${card.label || card.value}]`, false, true);
 
-    // 2.5s timer for robbing
     setTimeout(() => {
       setTurnPhase(prev => {
         if (prev === 'ROBBING') {
-          // If still in robbing phase (no one robbed), proceed to end turn
-          endTurn(true, [], true); // skip return logic as cards handled
+          endTurn(true, [], true);
           return 'END';
         }
         return prev;
@@ -446,35 +590,21 @@ const App = () => {
 
   const handleRob = () => {
     if (turnPhase !== 'ROBBING' || !pendingDiscard) return;
-    // Assume Human (Index 0) robs for now as per plan priority
     const robberIndex = 0;
 
-    setTurnPhase('ACTION'); // Or special ROBBED_ACTION phase? keep simple for now.
-    // Logic: Robber gets the card into their hand (or directly to slot?). 
-    // Plan implies "immediately complete a Percent Battle", so maybe to hand first is safest.
+    setTurnPhase('ACTION');
     setPlayers(prev => prev.map((p, i) =>
       i === robberIndex ? { ...p, hand: [...p.hand, pendingDiscard.card] } : p
     ));
-
-    // Remove from discard pile (render visual only, it's already in state but we want to 'undiscard' it effectively)
     setDiscardPile(prev => prev.slice(1));
-
     setStatusMessage(`ROBBED! Commander You seized the supply!`);
     logAction('Commander You', true, `突襲 (ROBBED) 了 [${pendingDiscard.card.label || pendingDiscard.card.value}]!`, true);
     setPendingDiscard(null);
-
-    // Force change turn to robber? Or just give card? 
-    // Rule: "Check if any other player can 'Rob' that card to immediately complete a 'Percent Battle'"
-    // usually implies stealing the turn. For simplicity, we just give the card and let the current turn finish (which causes issues if it was end of turn).
-    // Actually, if it was end of turn, the turn *ends* after discard. Robbing interrupts.
-    // Let's set current player to Robber.
     setCurrentPlayerIndex(robberIndex);
     setTurnPhase('ACTION');
   };
 
   const handlePercentBattle = useCallback(async (providedSlots = null) => {
-    // If called via onClick, providedSlots will be the event object. 
-    // We only use it if it's explicitly an array (from NPC logic).
     const activeSlots = Array.isArray(providedSlots) ? providedSlots : slots;
     const activeCards = activeSlots.filter(s => s !== null);
     if (activeCards.length === 0) return;
@@ -483,7 +613,6 @@ const App = () => {
     setStatusMessage('AI Judge is calculating strategy...');
     const sentence = activeSlots.map(s => s?.label || s?.value).filter(Boolean).join(' ');
 
-    // Log intent
     logAction(currentPlayer.name, currentPlayer.isHuman, `發起了 PERCENT BATTLE! 提交句子: "${sentence}"`);
 
     try {
@@ -491,7 +620,6 @@ const App = () => {
 
       if (result.isValid) {
         if (result.strategy === 'B') {
-          // Valid Question -> Trigger Challenge Mode
           setChallengeState({ challengerIndex: currentPlayerIndex, timer: 5, activeSlots: activeSlots });
           setTurnPhase('CHALLENGE');
           setStatusMessage('TACTICS B! Challenge Mode Initiated!');
@@ -499,14 +627,12 @@ const App = () => {
           return;
         }
 
-        // Strategy A (Answer)
         setPlayers(prev => prev.map((p, i) =>
           i === currentPlayerIndex ? { ...p, score: p.score + activeCards.length } : p
         ));
         setStatusMessage(`VICTORY! ${result.feedback}`);
         logAction('Judge', false, `✅ 判定有效! (${result.strategy}) 獲得 ${activeCards.length} 分。回饋: ${result.feedback}`, true);
 
-        // Check for Win Condition
         const newScore = players[currentPlayerIndex].score + activeCards.length;
         if (newScore >= 50) {
           setWinner(players[currentPlayerIndex]);
@@ -520,7 +646,6 @@ const App = () => {
           setCurrentPlayerIndex(nextIndex);
         }, 2500);
       } else {
-        // Penalty: -10 for invalid move as requested by user
         setPlayers(prev => prev.map((p, i) =>
           i === currentPlayerIndex ? { ...p, score: Math.max(0, p.score - 10) } : p
         ));
@@ -550,7 +675,6 @@ const App = () => {
       return;
     }
 
-    // If targetIndex is provided and valid, try to place it there
     if (targetIndex !== -1 && slots[targetIndex] === null) {
       if (card.value === 'Wild') {
         setShowWildSelector({ card, slotIndex: targetIndex });
@@ -566,7 +690,6 @@ const App = () => {
       return;
     }
 
-    // Fallback to first empty slot
     const emptySlotIndex = slots.findIndex(slot => slot === null);
     if (emptySlotIndex !== -1) {
       if (card.value === 'Wild') {
@@ -583,10 +706,22 @@ const App = () => {
     }
   };
 
+  // Reorder hand cards by drag within hand area
+  const reorderHand = useCallback((fromIndex, toIndex) => {
+    setPlayers(prev => prev.map((p, i) => {
+      if (!p.isHuman) return p;
+      const newHand = [...p.hand];
+      const [moved] = newHand.splice(fromIndex, 1);
+      newHand.splice(toIndex, 0, moved);
+      return { ...p, hand: newHand };
+    }));
+    logAction('Commander You', true, `重新排列了手牌順序`);
+  }, [logAction]);
+
   const handleWildSelect = (value) => {
     if (!showWildSelector) return;
     const { card, slotIndex } = showWildSelector;
-    const newCard = { ...card, label: value, isWild: true }; // Keep value as 'Wild' but set label for display/logic
+    const newCard = { ...card, label: value, isWild: true };
 
     const newSlots = [...slots];
     newSlots[slotIndex] = newCard;
@@ -621,7 +756,6 @@ const App = () => {
   const handleDragEnd = (event, info, card) => {
     if (!currentPlayer.isHuman || turnPhase !== 'ACTION') return;
 
-    // 1. Check Discard Zone
     if (discardRef.current) {
       const dRect = discardRef.current.getBoundingClientRect();
       if (
@@ -633,7 +767,6 @@ const App = () => {
       }
     }
 
-    // 2. Check Slots
     for (let i = 0; i < slotRefs.current.length; i++) {
       const slotEl = slotRefs.current[i];
       if (slotEl && slots[i] === null) {
@@ -656,9 +789,8 @@ const App = () => {
       interval = setInterval(() => {
         setChallengeState(prev => {
           if (prev.timer <= 1) {
-            // Timer ended, Challenger wins
             clearInterval(interval);
-            setTurnPhase('ACTION'); // Temporarily back to action to process win
+            setTurnPhase('ACTION');
             const points = prev.activeSlots.filter(s => s !== null).length;
             setPlayers(oldPlayers => oldPlayers.map((p, i) =>
               i === prev.challengerIndex ? { ...p, score: p.score + points } : p
@@ -666,7 +798,6 @@ const App = () => {
             setStatusMessage(`Challenge Timeout! ${players[prev.challengerIndex].name} gets points!`);
             logAction('System', false, `無人搶答! 發起者獲得 ${points} 分。`, true);
 
-            // Check Win
             if (players[prev.challengerIndex].score + points >= 50) {
               setWinner(players[prev.challengerIndex]);
               setTurnPhase('GAME_OVER');
@@ -688,23 +819,16 @@ const App = () => {
 
   const handleBuzzIn = () => {
     if (turnPhase !== 'CHALLENGE' || !challengeState) return;
-    // Human buzzes in
-    // For now, assume Human always wins the buzz and "answers correctly"
-    // In a full implementation, we'd capture their input.
-    const points = 5; // Bonus for answering
+    const points = 5;
     setPlayers(prev => prev.map((p, i) =>
-      i === 0 ? { ...p, score: p.score + points } : p // Player 0 is Human
+      i === 0 ? { ...p, score: p.score + points } : p
     ));
-
     setStatusMessage('BUZZ IN! Commander You answered correctly!');
     logAction('Commander You', true, `成功搶答! 獲得 ${points} 分!`, true);
-
     setTurnPhase('ACTION');
     setChallengeState(null);
-
     setTimeout(() => {
       resetRound();
-      // Reset to human drawer or next? Let's keep it consistent: reset and human starts fresh
       setCurrentPlayerIndex(0);
     }, 2000);
   };
@@ -723,11 +847,9 @@ const App = () => {
     }
   }, [gameMode, currentPlayerIndex, turnPhase, battleConfig.difficulty, drawCard, currentPlayer?.isHuman]);
 
-  // AI Turn Logic: Action/Discard Phase
   const npcProcessingRef = useRef({ turnIndex: -1, phase: '', round: -1 });
 
   useEffect(() => {
-    // Reset processing ref when a new turn starts or phase changes back to draw
     if (turnPhase === 'DRAW') {
       npcProcessingRef.current = { turnIndex: -1, phase: '', round: -1 };
     }
@@ -736,7 +858,6 @@ const App = () => {
   useEffect(() => {
     let isCancelled = false;
     if (gameMode === 'BATTLE' && currentPlayer && !currentPlayer.isHuman && turnPhase === 'ACTION') {
-      // Prevent re-running if we already processed this specific turn/phase/round
       if (
         npcProcessingRef.current.turnIndex === currentPlayerIndex &&
         npcProcessingRef.current.phase === 'ACTION' &&
@@ -746,9 +867,7 @@ const App = () => {
       }
 
       const executeMove = async () => {
-        // Mark as processing start
         npcProcessingRef.current = { turnIndex: currentPlayerIndex, phase: 'ACTION', round: round };
-
         const delay = battleConfig.difficulty === 'LOW' ? 2200 : battleConfig.difficulty === 'HIGH' ? 800 : 1500;
 
         try {
@@ -756,8 +875,6 @@ const App = () => {
             setStatusMessage(`${currentPlayer.name} is analyzing strategy...`);
             const move = await getNpcMove(currentPlayer.hand, contextData, battleConfig.difficulty);
 
-            // Critical: Only stop if it's literally no longer this player's turn or phase
-            // We ignore minor re-render cancellations to avoid stalling
             if (isCancelled && (turnPhase !== 'ACTION' || currentPlayerIndex !== npcProcessingRef.current.turnIndex)) return;
 
             if (move.action === 'BATTLE' && move.cardIndices?.length > 0) {
@@ -766,12 +883,8 @@ const App = () => {
                 const newSlots = [...slots];
                 chosenCards.forEach((card, i) => {
                   if (i < 10) {
-                    // Apply wild value if exists
                     if (card.value === 'Wild' && move.wildValues && move.wildValues[i.toString()]) {
                       newSlots[i] = { ...card, label: move.wildValues[i.toString()], isWild: true };
-                    } else if (card.value === 'Wild' && move.wildValues && move.wildValues[(currentPlayer.hand.indexOf(card)).toString()]) {
-                      // Fallback to checking by hand index if passed that way
-                      newSlots[i] = { ...card, label: move.wildValues[(currentPlayer.hand.indexOf(card)).toString()], isWild: true };
                     } else {
                       newSlots[i] = card;
                     }
@@ -782,28 +895,19 @@ const App = () => {
                   i === currentPlayerIndex ? { ...p, hand: p.hand.filter(c => !chosenCards.find(cc => cc.id === c.id)) } : p
                 ));
                 logAction(currentPlayer.name, false, `使用了 AI 策略進行 PERCENT BATTLE! 提交: "${newSlots.filter(Boolean).map(c => c.label || c.value).join(' ')}"`);
-
-                // Simulate judge lag
-                setTimeout(() => {
-                  handlePercentBattle(newSlots);
-                }, 1000);
+                setTimeout(() => { handlePercentBattle(newSlots); }, 1000);
                 return;
               }
             }
 
-            // Fallback to discard if AI chose discard or battle was invalid
             const discardIdx = (move.cardIndices && move.cardIndices[0] !== undefined) ? move.cardIndices[0] : 0;
             const cardToDiscard = currentPlayer.hand[discardIdx] || currentPlayer.hand[0];
-
             if (cardToDiscard) {
-              // Trigger Robbing Phase via initiateDiscard
               initiateDiscard(cardToDiscard);
-              // Note: initiateDiscard handles state updates and eventually endTurn
             } else {
               endTurn();
             }
           } else {
-            // Legacy Algorithm Driver
             const timer = setTimeout(() => {
               if (isCancelled && (turnPhase !== 'ACTION' || currentPlayerIndex !== npcProcessingRef.current.turnIndex)) return;
               const npcHand = [...currentPlayer.hand];
@@ -818,7 +922,6 @@ const App = () => {
           }
         } catch (error) {
           console.error("NPC Move Error:", error);
-          // If everything fails, NPC must end turn to avoid game freeze
           logAction(currentPlayer.name, false, "遭遇系統干擾，強制結束回合。");
           endTurn();
         }
@@ -837,6 +940,14 @@ const App = () => {
     if (card.value === 'blue') return { className: 'bg-blue-50 border-blue-400 text-blue-700', display: card.label };
     return { className: 'bg-card-w border-white/30 text-white', display: card.label || card.value };
   };
+
+  // Card scale limits
+  const MIN_SCALE = 0.5;
+  const MAX_SCALE = 1.6;
+  const SCALE_STEP = 0.1;
+
+  const humanHand = players.find(p => p.isHuman)?.hand || [];
+  const footerHeight = Math.round(128 * cardScale) + 32; // card height + padding
 
   try {
     if (!gameMode) return <StartMenu onSelectMode={(m) => startNewGame(m)} onStartBattle={(d, dr) => startNewGame('BATTLE', d, dr)} />;
@@ -867,6 +978,7 @@ const App = () => {
             </motion.div>
           </div>
         )}
+
         {turnPhase === 'ROBBING' && pendingDiscard && pendingDiscard.sourcePlayerIndex !== 0 && (
           <div className="fixed inset-0 z-[150] flex flex-col items-center justify-center pointer-events-none">
             <motion.div
@@ -902,6 +1014,7 @@ const App = () => {
           </div>
         )}
 
+        {/* Header */}
         <header className="h-20 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm shrink-0 z-10">
           <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-2">
             {players.map((player, idx) => (
@@ -953,9 +1066,12 @@ const App = () => {
           </div>
         </header>
 
+        {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             <div className="flex-1 flex overflow-hidden relative">
+
+              {/* Left Sidebar */}
               <aside className="w-64 border-r border-slate-200 bg-white p-6 flex flex-col gap-6 shrink-0 z-0 overflow-y-auto no-scrollbar">
                 <div className="space-y-4">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -976,7 +1092,6 @@ const App = () => {
                     ))}
                   </div>
                 </div>
-
 
                 <div className="space-y-4">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Discard</h3>
@@ -1013,8 +1128,9 @@ const App = () => {
                 </div>
               </aside>
 
+              {/* Main Game Area */}
               <main className="flex-1 flex flex-col gap-8 p-8 overflow-y-auto bg-slate-50/50 relative">
-                {/* Context Card: Global Data Monitor */}
+                {/* Context Card */}
                 <section className="flex flex-col items-center">
                   <div className="w-full max-w-2xl bg-white p-6 rounded-3xl shadow-xl border border-slate-200 relative overflow-hidden text-center">
                     <div className="flex items-center justify-center gap-3 mb-6">
@@ -1044,6 +1160,7 @@ const App = () => {
                   </div>
                 </section>
 
+                {/* Combat Construction Zone */}
                 <section className="flex flex-col items-center flex-1 justify-center min-h-[300px]">
                   <div className="mb-12 flex flex-col items-center text-center">
                     <div className="w-16 h-16 bg-white rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center mb-4">
@@ -1080,49 +1197,103 @@ const App = () => {
               </main>
             </div>
 
-            <footer className={`h-44 bg-white border-t border-slate-200 px-8 py-4 shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] transition-all duration-500 z-50
-            ${!currentPlayer.isHuman ? 'bg-slate-50' : isDiscardMode ? 'bg-red-50' : ''}`}
+            {/* ─── Hand Area (Footer) ─── */}
+            <footer
+              className={`bg-white border-t border-slate-200 px-4 py-3 shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] transition-all duration-500 z-50
+              ${!currentPlayer.isHuman ? 'bg-slate-50' : isDiscardMode ? 'bg-red-50' : ''}`}
+              style={{ minHeight: footerHeight + 'px' }}
             >
-              <div className={`h-full flex items-center overflow-x-visible overflow-y-visible no-scrollbar gap-4 px-2 transition-opacity duration-500
-              ${!currentPlayer.isHuman ? 'opacity-60 pointer-events-none grayscale-[0.2]' : ''}`}
+              {/* Scale Controls + Label */}
+              <div className="flex items-center justify-between mb-2 px-2">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">手牌區</span>
+                  <span className="text-[10px] text-slate-300 font-mono ml-2">({humanHand.length} 張)</span>
+                  {currentPlayer.isHuman && turnPhase === 'ACTION' && (
+                    <span className="text-[9px] text-slate-300 ml-2 italic">拖曳卡牌可重新排列順序</span>
+                  )}
+                </div>
+                {/* Card Scale Slider */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCardScale(s => Math.max(MIN_SCALE, parseFloat((s - SCALE_STEP).toFixed(1))))}
+                    className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors disabled:opacity-30"
+                    disabled={cardScale <= MIN_SCALE}
+                    title="縮小卡牌"
+                  >
+                    <ZoomOut size={14} />
+                  </button>
+                  <input
+                    type="range"
+                    min={MIN_SCALE}
+                    max={MAX_SCALE}
+                    step={SCALE_STEP}
+                    value={cardScale}
+                    onChange={e => setCardScale(parseFloat(e.target.value))}
+                    className="w-24 h-1.5 accent-indigo-500 cursor-pointer"
+                    title={`卡牌大小: ${Math.round(cardScale * 100)}%`}
+                  />
+                  <button
+                    onClick={() => setCardScale(s => Math.min(MAX_SCALE, parseFloat((s + SCALE_STEP).toFixed(1))))}
+                    className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors disabled:opacity-30"
+                    disabled={cardScale >= MAX_SCALE}
+                    title="放大卡牌"
+                  >
+                    <ZoomIn size={14} />
+                  </button>
+                  <span className="text-[10px] font-mono text-slate-300 w-8 text-right">{Math.round(cardScale * 100)}%</span>
+                </div>
+              </div>
+
+              {/* Hand Cards */}
+              <div
+                className={`flex items-end overflow-x-auto overflow-y-visible no-scrollbar gap-3 px-2 pb-1 transition-opacity duration-500
+                ${!currentPlayer.isHuman ? 'opacity-60 pointer-events-none grayscale-[0.2]' : ''}`}
+                style={{ minHeight: Math.round(128 * cardScale) + 'px' }}
               >
                 <AnimatePresence>
-                  {(players.find(p => p.isHuman)?.hand || []).map((card) => (
-                    <motion.div
+                  {humanHand.map((card, index) => (
+                    <HandCard
                       key={card.id}
-                      layoutId={card.id}
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      whileHover={currentPlayer.isHuman ? { y: -16, scale: 1.1 } : {}}
-                      whileDrag={{ scale: 1.1, zIndex: 100, cursor: 'grabbing' }}
-                      drag={currentPlayer.isHuman && turnPhase === 'ACTION' && !isLoading}
-                      dragSnapToOrigin
-                      onDragStart={() => { isDraggingRef.current = true; }}
-                      onDragEnd={(e, info) => {
-                        handleDragEnd(e, info, card);
-                        setTimeout(() => { isDraggingRef.current = false; }, 100);
-                      }}
-                      onTap={() => moveHandToSlot(card)}
-                      className={`flex-none w-24 h-32 rounded-2xl border-4 shadow-2xl flex items-center justify-center cursor-pointer relative group
-                      ${getCardConfig(card).className} ${isDiscardMode ? 'ring-4 ring-red-400 ring-offset-2 border-white' : 'border-white'}`}
-                    >
-                      <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors rounded-xl" />
-                      <span className="font-black text-xl italic tracking-tighter leading-none">{getCardConfig(card).display}</span>
-                      <div className="absolute top-1 left-2 text-[8px] font-black opacity-30 uppercase">{card.type === 'n' ? 'Num' : 'Word'}</div>
-                      {isDiscardMode && currentPlayer.isHuman && <div className="absolute inset-0 bg-red-500/20 backdrop-blur-[1px] flex items-center justify-center rounded-xl"><Trash2 className="text-white drop-shadow-lg" size={40} /></div>}
-                    </motion.div>
+                      card={card}
+                      index={index}
+                      cardScale={cardScale}
+                      isHuman={currentPlayer.isHuman}
+                      isDiscardMode={isDiscardMode}
+                      canInteract={currentPlayer.isHuman && turnPhase === 'ACTION' && !isLoading}
+                      getCardConfig={getCardConfig}
+                      onTap={moveHandToSlot}
+                      onDragToSlot={handleDragEnd}
+                      onReorder={reorderHand}
+                      handLength={humanHand.length}
+                    />
                   ))}
                 </AnimatePresence>
-                {(players.find(p => p.isHuman)?.hand?.length === 0) && <div className="w-full text-center text-slate-300 font-black uppercase tracking-widest italic">Out of Cards</div>}
+                {humanHand.length === 0 && (
+                  <div className="w-full text-center text-slate-300 font-black uppercase tracking-widest italic py-4">
+                    Out of Cards
+                  </div>
+                )}
               </div>
             </footer>
           </div>
-
-          <BattleLog history={actionHistory} />
         </div>
-        {/* Global Styles for no-scrollbar */}
-        <style>{`.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
+
+        {/* Battle Log — Collapsible Side Panel */}
+        <BattleLog
+          history={actionHistory}
+          isOpen={isBattleLogOpen}
+          onToggle={() => setIsBattleLogOpen(o => !o)}
+        />
+
+        <style>{`
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+          input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; }
+          input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: #e2e8f0; }
+          input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #6366f1; margin-top: -4px; cursor: pointer; }
+          input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: #e2e8f0; }
+          input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #6366f1; border: none; cursor: pointer; }
+        `}</style>
       </div>
     );
   } catch (error) {
