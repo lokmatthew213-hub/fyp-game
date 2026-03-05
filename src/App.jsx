@@ -20,6 +20,7 @@ import {
   ZoomIn,
   ZoomOut,
   GripVertical,
+  Shuffle,
 } from 'lucide-react';
 import { generateNDeck, generateWDeck, CARD_TYPES } from './data/decks';
 import { judgeSubmission, getNpcMove } from './utils/aiJudge';
@@ -1186,6 +1187,25 @@ const App = () => {
                               ⚠ {currentContextCard.hint}
                             </span>
                           )}
+                          {/* Refresh / Re-draw button */}
+                          <motion.button
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.92, rotate: 180 }}
+                            onClick={() => {
+                              setCurrentContextCard(prev => {
+                                const next = drawContextCard(prev?.id);
+                                setIsContextCardNew(true);
+                                setTimeout(() => setIsContextCardNew(false), 1500);
+                                logAction('System', false, `學生手動换牌! 新情境: ${next.name} (${next.nameEn})`, true);
+                                return next;
+                              });
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 hover:border-indigo-400 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-wide transition-all duration-200 shadow-sm hover:shadow-md"
+                            title="重新抽取情境牌"
+                          >
+                            <Shuffle size={11} />
+                            <span>換張牌</span>
+                          </motion.button>
                         </div>
                       </div>
 
