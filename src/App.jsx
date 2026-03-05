@@ -409,6 +409,7 @@ const App = () => {
   // New state for Battle Log visibility and card scale
   const [isBattleLogOpen, setIsBattleLogOpen] = useState(false);
   const [cardScale, setCardScale] = useState(1.0);
+  const [contextBlockSize, setContextBlockSize] = useState(24);
 
   // Context Card state — randomly drawn each round
   const [currentContextCard, setCurrentContextCard] = useState(() => drawContextCard());
@@ -1209,48 +1210,105 @@ const App = () => {
                         </div>
                       </div>
 
-                      {/* Card name */}
-                      <div className="mb-5">
-                        <h2 className="text-xl font-black text-slate-800 tracking-tight">{currentContextCard.name}</h2>
-                        <p className="text-xs text-slate-400 font-bold italic">{currentContextCard.nameEn} — {currentContextCard.description}</p>
-                      </div>
-
-                      {/* Segments grid */}
-                      <div className={`grid gap-4 mb-6 ${
-                        currentContextCard.segments.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
-                      }`}>
-                        {currentContextCard.segments.map(seg => (
-                          <div key={seg.key} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center group hover:bg-white hover:shadow-md transition-all duration-300">
-                            <span className="mb-2 text-xl group-hover:scale-110 transition-transform">{seg.icon}</span>
-                            <div className="text-[10px] font-black text-slate-400 font-mono uppercase mb-2 tracking-widest">{seg.label}</div>
-                            {currentContextCard.showNumbers ? (
-                              <div className={`text-4xl font-black ${seg.textColor} italic tracking-tighter`}>{seg.value}</div>
-                            ) : (
-                              <div className="text-2xl font-black text-slate-300 italic">?</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Progress bar */}
-                      <div className="w-full h-12 bg-slate-100 rounded-full flex overflow-hidden border-4 border-slate-50 shadow-inner">
-                        {currentContextCard.segments.map(seg => (
-                          <div
-                            key={seg.key}
-                            className="h-full transition-all duration-1000 relative"
+                      {/* Card name + zoom controls */}
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="text-left">
+                          <h2 className="text-xl font-black text-slate-800 tracking-tight">{currentContextCard.name}</h2>
+                          <p className="text-xs text-slate-400 font-bold italic">{currentContextCard.nameEn} — {currentContextCard.description}</p>
+                        </div>
+                        {/* Block size zoom controls */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <button
+                            onClick={() => setContextBlockSize(s => Math.max(12, s - 4))}
+                            disabled={contextBlockSize <= 12}
+                            className="w-7 h-7 rounded-full font-black text-base flex items-center justify-center border-2 transition-all select-none"
                             style={{
-                              width: `${(seg.value / currentContextCard.base) * 100}%`,
-                              backgroundColor: seg.barColor,
-                              minWidth: seg.value > 0 ? '4px' : '0'
+                              background: contextBlockSize <= 12 ? '#f1f5f9' : '#eff6ff',
+                              borderColor: contextBlockSize <= 12 ? '#cbd5e1' : '#bfdbfe',
+                              color: contextBlockSize <= 12 ? '#94a3b8' : '#3b82f6',
+                              cursor: contextBlockSize <= 12 ? 'not-allowed' : 'pointer',
                             }}
-                          >
-                            <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20" />
-                          </div>
-                        ))}
+                          >−</button>
+                          <span className="text-[10px] font-bold text-slate-400 w-6 text-center">{contextBlockSize}</span>
+                          <button
+                            onClick={() => setContextBlockSize(s => Math.min(48, s + 4))}
+                            disabled={contextBlockSize >= 48}
+                            className="w-7 h-7 rounded-full font-black text-base flex items-center justify-center border-2 transition-all select-none"
+                            style={{
+                              background: contextBlockSize >= 48 ? '#f1f5f9' : '#eff6ff',
+                              borderColor: contextBlockSize >= 48 ? '#cbd5e1' : '#bfdbfe',
+                              color: contextBlockSize >= 48 ? '#94a3b8' : '#3b82f6',
+                              cursor: contextBlockSize >= 48 ? 'not-allowed' : 'pointer',
+                            }}
+                          >+</button>
+                        </div>
                       </div>
+
+                      {/* Color block grid — 5 rows per column, students count themselves */}
+                      <div className="w-full overflow-x-auto pb-1">
+                        <div className="flex items-start justify-center flex-nowrap" style={{ gap: '16px' }}>
+                          {currentContextCard.segments.map(seg => {
+                            const ROWS = 5;
+                            const totalCols = Math.ceil(seg.value / ROWS);
+                            return (
+                              <div key={seg.key} className="flex flex-col items-center flex-shrink-0" style={{ gap: '6px' }}>
+                                {/* Color label pill */}
+                                <div
+                                  className="rounded-full border font-black px-3 py-0.5 whitespace-nowrap"
+                                  style={{
+                                    background: seg.key === 'red' ? '#fff1f0' : seg.key === 'yellow' ? '#fffbeb' : '#eff6ff',
+                                    borderColor: seg.key === 'red' ? '#fca5a5' : seg.key === 'yellow' ? '#fcd34d' : '#93c5fd',
+                                    color: seg.key === 'red' ? '#dc2626' : seg.key === 'yellow' ? '#d97706' : '#2563eb',
+                                    fontSize: `${Math.max(10, Math.min(14, contextBlockSize * 0.5))}px`,
+                                  }}
+                                >
+                                  {seg.label}
+                                </div>
+                                {/* Block columns */}
+                                <div className="flex items-start" style={{ gap: '4px' }}>
+                                  {Array.from({ length: totalCols }, (_, colIdx) => (
+                                    <div key={colIdx} className="flex flex-col" style={{ gap: '4px' }}>
+                                      {Array.from({ length: ROWS }, (_, rowIdx) => {
+                                        const blockIdx = colIdx * ROWS + rowIdx;
+                                        const filled = blockIdx < seg.value;
+                                        return (
+                                          <div
+                                            key={rowIdx}
+                                            className="rounded-md"
+                                            style={{
+                                              width: `${contextBlockSize}px`,
+                                              height: `${contextBlockSize}px`,
+                                              backgroundColor: filled ? seg.barColor : 'transparent',
+                                              border: filled ? `2px solid ${seg.barColor}99` : 'none',
+                                              visibility: filled ? 'visible' : 'hidden',
+                                              boxShadow: filled ? `0 2px 4px ${seg.barColor}40` : 'none',
+                                            }}
+                                          />
+                                        );
+                                      })}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Counting hint */}
+                      <p className="text-[10px] text-slate-400 italic mt-3 mb-1">
+                        每直行有 5 格，請自己數一數各顏色有幾格！
+                      </p>
+
+                      {/* Note / hint badge */}
+                      {currentContextCard.hint && (
+                        <div className="mt-2 rounded-lg px-3 py-1.5 border" style={{ background: '#fffbeb', borderColor: '#fcd34d' }}>
+                          <p className="text-xs font-bold" style={{ color: '#d97706' }}>💡 {currentContextCard.hint}</p>
+                        </div>
+                      )}
 
                       {/* Context card deck indicator */}
-                      <div className="mt-4 flex items-center justify-center gap-2">
+                      <div className="mt-3 flex items-center justify-center gap-2">
                         {CONTEXT_CARDS.map(c => (
                           <div
                             key={c.id}
