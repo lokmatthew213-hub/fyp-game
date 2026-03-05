@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { generateNDeck, generateWDeck, CARD_TYPES } from './data/decks';
 import { judgeSubmission, getNpcMove } from './utils/aiJudge';
+import { CONTEXT_CARDS, drawContextCard, buildContextData } from './data/contextCards';
 
 // ─────────────────────────────────────────────
 // StartMenu Component
@@ -382,8 +383,6 @@ const HandCard = ({
 // ─────────────────────────────────────────────
 // Main App Component
 // ─────────────────────────────────────────────
-const contextData = { red: 20, yellow: 30, blue: 50, total: 100 };
-
 const App = () => {
   const [gameMode, setGameMode] = useState(null);
   const [battleConfig, setBattleConfig] = useState({ difficulty: 'MEDIUM', driver: 'ALGORITHM' });
@@ -409,6 +408,10 @@ const App = () => {
   // New state for Battle Log visibility and card scale
   const [isBattleLogOpen, setIsBattleLogOpen] = useState(false);
   const [cardScale, setCardScale] = useState(1.0);
+
+  // Context Card state — randomly drawn each round
+  const [currentContextCard, setCurrentContextCard] = useState(() => drawContextCard());
+  const [isContextCardNew, setIsContextCardNew] = useState(false);
 
   const slotRefs = useRef(Array(10).fill(null).map(() => React.createRef()));
   const discardRef = useRef(null);
@@ -443,6 +446,7 @@ const App = () => {
       ];
     }
 
+    const firstContextCard = drawContextCard();
     setNDeck(newNDeck);
     setWDeck(newWDeck);
     setPlayers(initialPlayers);
@@ -454,7 +458,10 @@ const App = () => {
     setGameMode(mode);
     setRound(1);
     setActionHistory([]);
-    logAction('System', false, `Game Started: ${mode} mode.`);
+    setCurrentContextCard(firstContextCard);
+    setIsContextCardNew(true);
+    setTimeout(() => setIsContextCardNew(false), 1500);
+    logAction('System', false, `Game Started: ${mode} mode. Context: ${firstContextCard.name} (${firstContextCard.nameEn})`);
   };
 
   const currentPlayer = players[currentPlayerIndex] || {};
@@ -527,6 +534,15 @@ const App = () => {
     setIsDiscardMode(false);
     setPendingDiscard(null);
     setChallengeState(null);
+
+    // Draw a new context card each round
+    setCurrentContextCard(prev => {
+      const next = drawContextCard(prev?.id);
+      setIsContextCardNew(true);
+      setTimeout(() => setIsContextCardNew(false), 1500);
+      logAction('System', false, `新情境地圖! 抽到: ${next.name} (${next.nameEn})`, true);
+      return next;
+    });
 
     logAction('System', false, 'Round Reset! All cards collected and supply lines redistributed.', true);
     setStatusMessage('Operation Reset. Supply Line Refreshed. Draw a Card.');
@@ -614,6 +630,9 @@ const App = () => {
     const sentence = activeSlots.map(s => s?.label || s?.value).filter(Boolean).join(' ');
 
     logAction(currentPlayer.name, currentPlayer.isHuman, `發起了 PERCENT BATTLE! 提交句子: "${sentence}"`);
+
+    // Build context data from current context card
+    const contextData = buildContextData(currentContextCard);
 
     try {
       const result = await judgeSubmission(sentence, contextData);
@@ -1130,34 +1149,99 @@ const App = () => {
 
               {/* Main Game Area */}
               <main className="flex-1 flex flex-col gap-8 p-8 overflow-y-auto bg-slate-50/50 relative">
-                {/* Context Card */}
+                {/* Context Card — Dynamic, randomly drawn each round */}
                 <section className="flex flex-col items-center">
-                  <div className="w-full max-w-2xl bg-white p-6 rounded-3xl shadow-xl border border-slate-200 relative overflow-hidden text-center">
-                    <div className="flex items-center justify-center gap-3 mb-6">
-                      <Layers size={18} className="text-indigo-500" />
-                      <h2 className="text-lg font-black uppercase tracking-tight text-slate-600 italic">Global Context Map</h2>
-                    </div>
-                    <div className="grid grid-cols-3 gap-6 mb-8">
-                      {[{ label: '紅色部', val: 20, c: 'text-red-600', icon: '🔴' }, { label: '黃色部', val: 30, c: 'text-amber-600', icon: '🟡' }, { label: '藍色部', val: 50, c: 'text-blue-600', icon: '🔵' }].map(item => (
-                        <div key={item.label} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center group hover:bg-white hover:shadow-md transition-all duration-300">
-                          <span className="mb-2 text-xl group-hover:scale-110 transition-transform">{item.icon}</span>
-                          <div className="text-[10px] font-black text-slate-400 font-mono uppercase mb-2 tracking-widest">{item.label}</div>
-                          <div className={`text-4xl font-black ${item.c} italic tracking-tighter`}>{item.val}</div>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentContextCard.id}
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                      transition={{ duration: 0.4 }}
+                      className={`w-full max-w-2xl bg-white p-6 rounded-3xl shadow-xl border-2 relative overflow-hidden text-center transition-all duration-500
+                        ${isContextCardNew ? 'border-amber-400 shadow-amber-200/50 shadow-2xl' : 'border-slate-200'}`}
+                    >
+                      {/* NEW badge */}
+                      {isContextCardNew && (
+                        <motion.div
+                          initial={{ scale: 0, rotate: -15 }}
+                          animate={{ scale: 1, rotate: -5 }}
+                          exit={{ scale: 0 }}
+                          className="absolute top-3 right-3 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg z-10"
+                        >
+                          NEW MAP!
+                        </motion.div>
+                      )}
+
+                      {/* Card header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Layers size={16} className="text-indigo-500" />
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">情境地圖 Context Map</span>
                         </div>
-                      ))}
-                    </div>
-                    <div className="w-full h-12 bg-slate-100 rounded-full flex overflow-hidden border-4 border-slate-50 shadow-inner">
-                      <div className="h-full bg-data-r transition-all duration-1000 relative group" style={{ width: '20%' }}>
-                        <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20" />
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-slate-300">基數 {currentContextCard.base}</span>
+                          {currentContextCard.hint && (
+                            <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                              ⚠ {currentContextCard.hint}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="h-full bg-data-y transition-all duration-1000 relative" style={{ width: '30%' }}>
-                        <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20" />
+
+                      {/* Card name */}
+                      <div className="mb-5">
+                        <h2 className="text-xl font-black text-slate-800 tracking-tight">{currentContextCard.name}</h2>
+                        <p className="text-xs text-slate-400 font-bold italic">{currentContextCard.nameEn} — {currentContextCard.description}</p>
                       </div>
-                      <div className="h-full bg-data-b transition-all duration-1000 relative" style={{ width: '50%' }}>
-                        <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20" />
+
+                      {/* Segments grid */}
+                      <div className={`grid gap-4 mb-6 ${
+                        currentContextCard.segments.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
+                      }`}>
+                        {currentContextCard.segments.map(seg => (
+                          <div key={seg.key} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center group hover:bg-white hover:shadow-md transition-all duration-300">
+                            <span className="mb-2 text-xl group-hover:scale-110 transition-transform">{seg.icon}</span>
+                            <div className="text-[10px] font-black text-slate-400 font-mono uppercase mb-2 tracking-widest">{seg.label}</div>
+                            {currentContextCard.showNumbers ? (
+                              <div className={`text-4xl font-black ${seg.textColor} italic tracking-tighter`}>{seg.value}</div>
+                            ) : (
+                              <div className="text-2xl font-black text-slate-300 italic">?</div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  </div>
+
+                      {/* Progress bar */}
+                      <div className="w-full h-12 bg-slate-100 rounded-full flex overflow-hidden border-4 border-slate-50 shadow-inner">
+                        {currentContextCard.segments.map(seg => (
+                          <div
+                            key={seg.key}
+                            className="h-full transition-all duration-1000 relative"
+                            style={{
+                              width: `${(seg.value / currentContextCard.base) * 100}%`,
+                              backgroundColor: seg.barColor,
+                              minWidth: seg.value > 0 ? '4px' : '0'
+                            }}
+                          >
+                            <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20" />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Context card deck indicator */}
+                      <div className="mt-4 flex items-center justify-center gap-2">
+                        {CONTEXT_CARDS.map(c => (
+                          <div
+                            key={c.id}
+                            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                              c.id === currentContextCard.id ? 'bg-indigo-500 scale-150' : 'bg-slate-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
                 </section>
 
                 {/* Combat Construction Zone */}
