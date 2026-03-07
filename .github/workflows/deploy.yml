@@ -25,18 +25,30 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: npm run build
+      - name: Build frontend
+        run: pnpm vite build
+        env:
+          VITE_APP_TITLE: 百分戰局 Percent Battle
+          VITE_APP_ID: placeholder
+          VITE_OAUTH_PORTAL_URL: placeholder
+          VITE_FRONTEND_FORGE_API_KEY: placeholder
+          VITE_FRONTEND_FORGE_API_URL: placeholder
+          VITE_ANALYTICS_ENDPOINT: placeholder
+          VITE_ANALYTICS_WEBSITE_ID: placeholder
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./dist/public
 
   deploy:
     environment:
