@@ -1,0 +1,1 @@
+ALTER TABLE `gameRooms` MODIFY COLUMN `playersJson` text NOT NULL;
